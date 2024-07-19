@@ -3,7 +3,7 @@
 #pragma once
 #include <memory>
 #include "GameObject.hpp"
-#include "Structs.h"
+#include "Coordinates.h"
 #include "GameUtils.hpp"
 #include "JsonFile.h"
 #include "Input.h"
@@ -17,6 +17,7 @@
 #include "DirectionsEnum.h"
 #include <unordered_map>
 #include <utility>
+#include "RoadsGraph.h"
 
 using namespace std;
 class GameState {
@@ -98,6 +99,7 @@ public:
 		return false;
 	}
 	shared_ptr<ObjectsInXY> getObjectsInXYInCoordinates(const Coordinates& coord) {
+		//not the time
 		if (coord.y > worldMatrix.size() || coord.x > worldMatrix[0].size() || coord.x < 1 || coord.y < 1) {
 			return nullptr;
 		}
@@ -224,6 +226,14 @@ public:
 	void addNewGameObjectToGameObjects(shared_ptr<GameObject> newGameObject) {
 		gameObjects[newGameObject->getCategory()].push_back(newGameObject);
 	}
+	bool isThereRoad(const Coordinates& coord) {
+		if (!objectsInXYNullPtr(coord) && getObjectsInXYInCoordinates(coord)->isRoad()) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 
 	void selectTopMostObject(Coordinates coordinates) {
 		//TODO error handling- no object, invalid coordinates
@@ -231,8 +241,10 @@ public:
 	}
 
 	void startMovingObject(ObjectMoving newMovingObject) {
+		
 		movingGameObjects.push_back(newMovingObject);
 	}
+
 	void startBuildingObject(shared_ptr<GameObject> beingBuilt) {
 		buildingObjects.push_back(beingBuilt);
 	}
@@ -247,18 +259,32 @@ public:
 		}
 		return getObjectsInXYInCoordinates(coordinates)->getTopMost();
 	}
+
 	bool placeToMoveToForVehicle(const Coordinates& coord) {
-		bool isHasTile = hasTile(coord);
-		return   isHasTile &&
-			//getTile(coord)->getCategory() != "Water" && 
-			(getObjectsInXYInCoordinates(coord) == nullptr || getObjectsInXYInCoordinates(coord)->placeToMoveToForVehicle());
-	}
-	bool placeToMoveToForPerson(const Coordinates& coord) {
-		return  hasTile(coord) &&
-			//getTile(coord)->getCategory() != "Water" &&
-			(getObjectsInXYInCoordinates(coord) == nullptr || getObjectsInXYInCoordinates(coord)->placeToMoveToForPerson());
+
+		bool isHasTile = hasTile(coord); 
+		bool isNotWater = getTile(coord)->getCategory()!=GameUtils::WATER; 
+		bool isHasRoad = isThereRoad(coord); 
+		bool isPlaceFree = getObjectsInXYInCoordinates(coord) != nullptr && getObjectsInXYInCoordinates(coord)->placeToMoveToForVehicle();
+
+		
+
+		return isHasTile && isNotWater && isHasRoad && isPlaceFree;
 	}
 
+	bool placeToMoveToForPerson(const Coordinates& coord) {
+		return  hasTile(coord) &&
+			getTile(coord)->getCategory() != "Water" &&
+			(getObjectsInXYInCoordinates(coord) == nullptr || getObjectsInXYInCoordinates(coord)->placeToMoveToForPerson());
+	}
+	bool occupiedByMovingObject(const Coordinates & dst) {
+		if (!objectsInXYNullPtr(dst) && getObjectsInXYInCoordinates(dst)->occupiedByMovingObj()) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 	void moveMovingGameObjects() {
 		bool movedThisTime = false;
 		for (list<ObjectMoving>::iterator movingObj = movingGameObjects.begin(); movingObj != movingGameObjects.end(); movingObj++) {
@@ -458,7 +484,29 @@ public:
 		}*/
 
 	}
+	vector<shared_ptr<GameObject>> roadsAroundRoad( const Coordinates& roadCoord, int roadSize)
+	{
+		vector<shared_ptr<GameObject>> roadsAround;
 
+		vector<Coordinates > places;
+		places.push_back(roadCoord + Coordinates(0, -1));// /\ /
+		places.push_back(roadCoord + Coordinates(0, roadSize));// \/ 
+		places.push_back(roadCoord + Coordinates(roadSize, 0)); //-->
+		places.push_back(roadCoord + Coordinates(-1, 0));//<--
+
+		
+
+		for (const Coordinates& coord : places) { 
+			if (isThereRoad(coord)) {
+				roadsAround.push_back(getObjectsInXYInCoordinates(coord)->infrastructure); 
+			} 
+		}
+
+
+
+
+		return roadsAround;
+	}
 	void rainMoveBuild() {
 		rain();
 		moveMovingGameObjects();
@@ -510,7 +558,7 @@ public:
 	int rainLeftToFall;
 	map<string, pair<int, int>> rainsNeedToRegrow;
 	vector < vector<shared_ptr<GameObject>>> tiles;
-
+	RoadsGraph roadsGraph; 
 	list<ObjectMoving> movingGameObjects;
 	list<shared_ptr<GameObject>> buildingObjects;
 	shared_ptr<JsonFile> jsonFilePtr;

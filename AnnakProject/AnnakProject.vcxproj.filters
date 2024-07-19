@@ -45,6 +45,12 @@
     <ClCompile Include="GameVisuals.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CreateCommand.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Command.h">
@@ -71,7 +77,7 @@
     <ClInclude Include="GameState.hpp">
       <Filter>GameModels</Filter>
     </ClInclude>
-    <ClInclude Include="Structs.h">
+    <ClInclude Include="Coordinates.h">
       <Filter>GameModels</Filter>
     </ClInclude>
     <ClInclude Include="JsonFile.h">
@@ -96,6 +102,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DirectionsEnum.h">
+      <Filter>GameModels</Filter>
+    </ClInclude>
+    <ClInclude Include="GameControl.h">
+      <Filter>GameModels</Filter>
+    </ClInclude>
+    <ClInclude Include="RoadsGraph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CreateCommand.h">
       <Filter>GameModels</Filter>
     </ClInclude>
   </ItemGroup>

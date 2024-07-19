@@ -6,6 +6,7 @@
 #include "JsonFile.h"
 #include "Command.h"
 #include <vector>
+#include <unordered_map>
 #include <opencv2/opencv.hpp>
 #include "DirectionsEnum.h"
 
@@ -18,7 +19,10 @@ using namespace cv;
 class GameState;
 
 class GameVisuals {
+public:
+
 	static Mat main_mat;
+	static Mat secondary_mat;
 
 	// Structure to hold rectangle properties
 	struct Rectangle {
@@ -33,6 +37,31 @@ class GameVisuals {
 			this->movedABit = true;
 		}
 	};
+	struct Button { 
+		Rect locationRect;  
+		bool isPushed;
+		string label; 
+		Scalar onColor;
+		Scalar offColor;
+		bool toggle() {
+
+			return isPushed = !isPushed;
+		}
+		void drawButton(Mat & copy) const{
+			if (isPushed) {
+				rectangle(copy, locationRect, onColor, -1);
+			}
+			else {
+				rectangle(copy, locationRect, offColor, -1);
+			}
+			putText(copy, label, Point(locationRect.x + 2, locationRect.y + locationRect.height / 2),FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 2);
+		}
+		Button(Rect rect, string label,bool isPushed) :locationRect(rect), label(label),onColor(Scalar(0, 255, 0)),offColor(Scalar(0, 0, 255)),isPushed(isPushed) {}
+		Button() {
+			//cout << "def ctor" << endl;
+		}
+	};
+	static unordered_map<string,Button> buttons; 
 	struct MovingLabel {
 		bool isBeingDraggedNow;
 		Point holdOffset;
@@ -51,6 +80,8 @@ class GameVisuals {
 	static Rectangle* recBeing;
 	static MovingLabel pointsLabel;
 	static MovingLabel resourcesLabel;
+
+
 	static  std::shared_ptr<GameState> gameState;
 	static void fillChosenAreaDetails();
 	static shared_ptr<JsonFile> jsonFilePtr;
@@ -59,6 +90,9 @@ class GameVisuals {
 	static 	unordered_map<string, Mat> category_image_map;
 	static map<string, vector<Mat>>  category_states_map;
 	static int currentFrameIndex;
+	static bool isInMainMat(int x, int y);
+	static bool isInSecondaryMat(int x, int y);
+
 public:
 
 	static bool inTheMiddleOfDrawingRectangle;
@@ -68,9 +102,10 @@ public:
 
 	
 
-	static bool generateNewMoving;
-	static bool stopMoving;
-	static bool mouseClicked;
+	static bool generateNewMoving; 
+	static bool stopGame; 
+	static bool mouseClicked; 
+	static void fillResourcesLabelBySelected();
 	static void fill_game_visuals(shared_ptr<GameState> gameState);
 	static void addObject(shared_ptr<GameObject> newObject);
 	static void addObjectState(shared_ptr<GameObject> newObject);
@@ -82,6 +117,7 @@ public:
 
 	static void show();
 	static void onMouse(int event, int x, int y, int, void*);
+
 	static void drawInitMatByWorld(const vector < vector<shared_ptr<GameObject>>>& tiles);
 
 

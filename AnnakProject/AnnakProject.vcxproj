@@ -131,6 +131,8 @@
   <ItemGroup>
     <ClCompile Include="AnnakProject.cpp" />
     <ClCompile Include="Asserts.cpp" />
+    <ClCompile Include="CreateCommand.cpp" />
+    <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameUtils.cpp" />
     <ClCompile Include="Command.cpp" />
     <ClCompile Include="CommandExecute.cpp" />
@@ -140,7 +142,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Asserts.hpp" />
+    <ClInclude Include="CreateCommand.h" />
     <ClInclude Include="DirectionsEnum.h" />
+    <ClInclude Include="GameControl.h" />
     <ClInclude Include="GameUtils.hpp" />
     <ClInclude Include="Command.h" />
     <ClInclude Include="CommandExecute.h" />
@@ -152,7 +156,8 @@
     <ClInclude Include="JsonFile.h" />
     <ClInclude Include="ObjectMoving.h" />
     <ClInclude Include="ObjectsInXY.h" />
-    <ClInclude Include="Structs.h" />
+    <ClInclude Include="RoadsGraph.h" />
+    <ClInclude Include="Coordinates.h" />
     <ClInclude Include="Utility.h" />
     <ClInclude Include="Validations.hpp" />
     <ClInclude Include="GameVisuals.h" />

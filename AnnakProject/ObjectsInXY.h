@@ -94,7 +94,6 @@ public:
 			&& hasTile
 			&& !hasTransportation()
 			// for now cant go to transportation?...
-			//&& tile->getCategory() != "Water"
 			;
 	}
 	bool occupiedByMovingObj() const {

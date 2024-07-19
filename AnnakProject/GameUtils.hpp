@@ -6,7 +6,7 @@
 #include <vector>
 #include "ObjectsInXY.h"
 #include <iomanip> // For std::setw/=
-#include "Structs.h"
+#include "Coordinates.h"
 using namespace std;
 class GameUtils {
 public:

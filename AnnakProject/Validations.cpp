@@ -105,6 +105,14 @@ bool Validations::isThereRoadAround(const std::vector<std::vector<shared_ptr<Obj
 	return false;
 }
 
+
+//gets outer and 1 of inner
+bool Validations::isInArea(shared_ptr<GameObject> obj, const Coordinates& inside)
+{
+	return isInArea(obj->getCoordinates(), obj->getRightBottomCoordinates(), inside);
+}
+
+//gets 2 of outer and 1 innter
 bool Validations::isInArea(const Coordinates& topLeftArea, const Coordinates& bottomRightAera, const Coordinates& obj)
 {
 	if (obj.x >= topLeftArea.x && obj.x <= bottomRightAera.x && obj.y >= topLeftArea.y && obj.y <= bottomRightAera.y) {
@@ -114,8 +122,22 @@ bool Validations::isInArea(const Coordinates& topLeftArea, const Coordinates& bo
 		return false;
 }
 
+//gets outer and inner
+bool Validations::isInArea(const shared_ptr<GameObject> big, const shared_ptr<GameObject> small)
+{
+	return isInArea(big->getCoordinates(), big->getRightBottomCoordinates(), small->getCoordinates(), small->getRightBottomCoordinates());
+}
+
+//get object outer, topLeft and objSize of inner
+bool Validations::isInArea(const shared_ptr<GameObject> big, const Coordinates& topLeft, int objSize) {
+	Coordinates rightBottom(topLeft.x + objSize-1, topLeft.y + objSize-1);
+	return isInArea(big->getCoordinates(), big->getRightBottomCoordinates(), topLeft, rightBottom);
+}
+
+//gets 4 Coordinates: 2 outer and 2 inner
 bool Validations::isInArea(const Coordinates& topLeftArea, const Coordinates& bottomRightArea, const Coordinates& topLeftObj, const Coordinates& bottomRightObj)
 {
-	return isInArea(topLeftArea, bottomRightArea, topLeftObj) || isInArea(topLeftArea, bottomRightArea, bottomRightObj);
+	//if both of them are inside
+	return isInArea(topLeftArea, bottomRightArea, topLeftObj) && isInArea(topLeftArea, bottomRightArea, bottomRightObj);
 
 }

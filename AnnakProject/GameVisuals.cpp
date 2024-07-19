@@ -5,17 +5,22 @@
 #include <unordered_map> 
 #include <vector> 
 #include <algorithm>
-#include "Structs.h"
+#include <ranges>
+#include "Coordinates.h"
 #include "GameState.hpp"
 #include "Validations.hpp"
+#include "CommandExecute.h"
+#include "CreateCommand.h"
 
 using namespace cv;
 using namespace std;
 // Define the static member variables
 //std::shared_ptr<GameState> GameVisuals::game;
+
 std::shared_ptr<JsonFile> GameVisuals::jsonFilePtr;
 unordered_map<string, Mat> GameVisuals::category_image_map;
 Mat GameVisuals::main_mat;
+Mat GameVisuals::secondary_mat;
 bool GameVisuals::mouseClicked = false;
 int GameVisuals::currentFrameIndex = 0;
 bool GameVisuals::userChoseDst = false;
@@ -25,7 +30,7 @@ vector<shared_ptr<GameObject>> GameVisuals::objectsInArea;
 shared_ptr<GameState> GameVisuals::gameState;
 
 double GameVisuals::lastTime;
-bool GameVisuals::stopMoving = false;
+bool GameVisuals::stopGame = false;
 bool GameVisuals::inTheMiddleOfDrawingRectangle = false;
 bool GameVisuals::generateNewMoving = false;
 
@@ -33,6 +38,31 @@ map<string, vector<Mat>> GameVisuals::category_states_map;
 GameVisuals::Rectangle* GameVisuals::recBeing = nullptr;
 GameVisuals::MovingLabel GameVisuals::pointsLabel;
 GameVisuals::MovingLabel GameVisuals::resourcesLabel;
+
+unordered_map<string, GameVisuals::Button> GameVisuals::buttons;
+
+void GameVisuals::fillResourcesLabelBySelected() {
+
+
+	resourcesLabel.texts.clear();
+	if (gameState->currentSelectedGameObject == nullptr)
+	{
+		resourcesLabel.texts.push_back("nothing");
+		resourcesLabel.texts.push_back("selected");
+
+	}
+	else {
+		resourcesLabel.texts.push_back("you selected:");
+		resourcesLabel.texts.push_back(gameState->currentSelectedGameObject->getCategory());
+		resourcesLabel.texts.push_back("");
+		for (int i = 0; i < 5; i++) {
+			resourcesLabel.texts.push_back(jsonFilePtr->resourcesTypes[i] + " " + to_string(gameState->currentSelectedGameObject->getResources()[i]));
+		}
+	}
+
+}
+
+
 
 void GameVisuals::fill_game_visuals(shared_ptr<GameState> gameState)
 {
@@ -97,8 +127,6 @@ void GameVisuals::addObject(shared_ptr<GameObject> newObject)
 	resize(category_image_map[newObject->getCategory()], obj, Size(objSize, objSize), INTER_LINEAR);
 	Rect placeForNewObj((newObject->getCoordinates().x - 1) * cellSize, (newObject->getCoordinates().y - 1) * cellSize, objSize, objSize);
 	obj.copyTo(main_mat(placeForNewObj));
-
-
 
 }
 void GameVisuals::addObjectState(shared_ptr<GameObject> newObject)
@@ -230,6 +258,7 @@ void GameVisuals::drawGrid(cv::Mat& image, int cellSize, int cellsInTile) {
 		cv::putText(image, label, cv::Point(j * cellSize - cellSize / 2 - textSize.width / 2, textSize.height + 5), fontFace, fontScale, cv::Scalar(0, 0, 0), thickness);
 	}
 }
+
 void GameVisuals::draw()
 {
 
@@ -278,89 +307,154 @@ void GameVisuals::show()
 {
 	static int callCount = 0;
 	callCount++;
+
 	int cellSize = 30;
 	int tileCells = jsonFilePtr->sizes[GameUtils::TILE].first;
 	int tileSize = tileCells * cellSize;
 
-	drawGrid(main_mat, 30, jsonFilePtr->sizes[GameUtils::TILE].first);
-	Mat copyWithRectangleAndLabel = main_mat.clone();
 
-	pointsLabel.drawLabel(copyWithRectangleAndLabel);
+	Mat copyWithRectangleAndLabel = main_mat.clone();
+	Mat secondary_copy = secondary_mat.clone();
+
+	pointsLabel.drawLabel(secondary_copy);
+	resourcesLabel.drawLabel(secondary_copy);
 
 	if (recBeing != nullptr && recBeing->movedABit) {
 		//show current state + the rectangle
 
 		rectangle(copyWithRectangleAndLabel, Point(recBeing->initX, recBeing->initY), Point(recBeing->x, recBeing->y), Scalar(0, 0, 255), 2);
 		if (!inTheMiddleOfDrawingRectangle)
-			resourcesLabel.drawLabel(copyWithRectangleAndLabel);
-		cout << "show with rect" << callCount << endl;
+			//resourcesLabel.drawLabel(secondary_copy);
+			cout << "show with rect" << callCount << endl;
 	}
 	else {
-		cout << "show " << callCount << endl;
+		//cout << "show " << callCount << endl;
 	}
-	double currentTime = getTickCount();
-	double ticksPerFrame = (1.0 / 5) * getTickFrequency();
-	if (currentTime - lastTime >= ticksPerFrame)
-	{
-		//its time to switch frame!
-		lastTime = currentTime;
-		for (const auto& movingObj : gameState->movingGameObjects) { 
-			if (movingObj.isPeople) { 
-				addObjectState(movingObj.gameObject); 
-			} 
-		} 
+	if (!stopGame) {
+		double currentTime = getTickCount();
+		double ticksPerFrame = (1.0 / 5) * getTickFrequency();
+		if (currentTime - lastTime >= ticksPerFrame)
+		{
+			//its time to switch frame!
+			lastTime = currentTime;
+			for (const auto& movingObj : gameState->movingGameObjects) {
+				if (movingObj.isPeople) {
+					addObjectState(movingObj.gameObject);
+				}
+			}
+		}
 	}
 
-	cv::imshow("world", copyWithRectangleAndLabel);
+
+	// Check if the heights are the same (they should be as per your description)
+	if (copyWithRectangleAndLabel.rows != secondary_copy.rows) {
+		std::cerr << "The heights of the matrices are not the same!" << std::endl;
+
+	}
+	if (buttons["Grid"].isPushed) {
+		drawGrid(copyWithRectangleAndLabel, 30, jsonFilePtr->sizes[GameUtils::TILE].first);
+	}
+
+
+	// Concatenate the two images horizontally
+	cv::Mat combined;
+	cv::hconcat(copyWithRectangleAndLabel, secondary_copy, combined);
+
+	// Display the combined image
+	cv::imshow("world", combined);
 
 	//cv::waitKey(10);
 	//setWindowProperty("world", WND_PROP_FULLSCREEN, WINDOW_FULLSCREEN); 
 }
 
+bool GameVisuals::isInMainMat(int x, int y) {
+	return x >= 0 && x < main_mat.cols && y >= 0 && y < main_mat.rows;
+}
+bool GameVisuals::isInSecondaryMat(int x, int y) {
+	return x >= main_mat.cols && x < main_mat.cols + secondary_mat.cols && y >= 0 && y < secondary_mat.rows;
+}
+
 // Mouse callback function
 void GameVisuals::onMouse(int event, int x, int y, int, void*) {
 	static int callCount = 0;
-
 	int cellSize = 30;
+
 	switch (event) {
 	case  EVENT_LBUTTONDOWN:
+	{
 		cout << "event: l down" << endl;
-		if (pointsLabel.locationRect.contains(Point(x, y))) {
-			pointsLabel.isBeingDraggedNow = true;
-			pointsLabel.holdOffset = Point(x, y) - pointsLabel.locationRect.tl();
-		}
-		else if (recBeing != nullptr && !inTheMiddleOfDrawingRectangle) {
-			//the area exists, maybe the resources label is being dragged
-			if (resourcesLabel.locationRect.contains(Point(x, y))) {
+		if (isInSecondaryMat(x, y)) {
+			if (pointsLabel.locationRect.contains(Point(x - main_mat.cols, y))) {
+				pointsLabel.isBeingDraggedNow = true;
+				pointsLabel.holdOffset = Point(x - main_mat.cols, y) - pointsLabel.locationRect.tl();
+			}
+			for (unordered_map<string, Button>::iterator iter = buttons.begin(); iter != buttons.end(); iter++) {
+				if (iter->second.locationRect.contains(Point(x - main_mat.cols, y))) {
+
+					iter->second.toggle();
+					iter->second.drawButton(secondary_mat);
+
+					if (iter->first == "Pouse") {
+						if (iter->second.isPushed) {
+							stopGame = true;
+						}
+						else {
+							stopGame = false;
+						}
+					}
+					break;
+				}
+			}
+			//if (recBeing != nullptr && !inTheMiddleOfDrawingRectangle) {
+			//	//the area exists, maybe the resources label is being dragged
+			if (resourcesLabel.locationRect.contains(Point(x - main_mat.cols, y))) {
 				resourcesLabel.isBeingDraggedNow = true;
-				resourcesLabel.holdOffset = Point(x, y) - resourcesLabel.locationRect.tl();
+				resourcesLabel.holdOffset = Point(x - main_mat.cols, y) - resourcesLabel.locationRect.tl();
+			}
+			//}
+		}
+		else if (isInMainMat(x, y)) {
+			if (stopGame) {
+				if (recBeing == nullptr) {
+					//new rect is starting:
+					inTheMiddleOfDrawingRectangle = true;
+					recBeing = new Rectangle(x, y);
+				}
+			}
+			else {
+				Coordinates coord(x / cellSize + 1, y / cellSize + 1); 
+
+		 		if (gameState->currentSelectedGameObject!=nullptr&& gameState->currentSelectedGameObject->canMove()&&!gameState->currentSelectedGameObject->getIsMoving()) {
+					CreateCommand::selecteDstForMovable(coord);   
+				}
+
+				CreateCommand::createSelectCommand(coord);
+				fillResourcesLabelBySelected();
 			}
 		}
-		else if (recBeing == nullptr) {//new rect is starting:
-			inTheMiddleOfDrawingRectangle = true;
-			recBeing = new Rectangle(x, y);
-		}
+
+
+
 		break;
+	}
 	case EVENT_MOUSEMOVE:
 	{
 		callCount++;
 		//cout << "event: move" <<callCount<< endl; 
-		if (!inTheMiddleOfDrawingRectangle && recBeing != nullptr) {
+		//if (!inTheMiddleOfDrawingRectangle && recBeing != nullptr) {
 			//the area exists!
 
-			if (resourcesLabel.isBeingDraggedNow) {
-				resourcesLabel.locationRect = Rect(Point(x, y) - resourcesLabel.holdOffset, resourcesLabel.locationRect.size());
-				//resourcesLabel.drawLabel(copyWithLabelAndRectangle);
-			}
+		if (resourcesLabel.isBeingDraggedNow) {
+			resourcesLabel.locationRect = Rect(Point(x - main_mat.cols, y) - resourcesLabel.holdOffset, resourcesLabel.locationRect.size());
 		}
+		//}
 		else if (pointsLabel.isBeingDraggedNow) {
-			// lets draw it
-			pointsLabel.locationRect = Rect(Point(x, y) - pointsLabel.holdOffset, pointsLabel.locationRect.size());
+			pointsLabel.locationRect = Rect(Point(x - main_mat.cols, y) - pointsLabel.holdOffset, pointsLabel.locationRect.size());
 		}
 		else if (inTheMiddleOfDrawingRectangle) {
 			//cout << "updating rect" << endl;
 			recBeing->setXYMoved(x, y);
-			stopMoving = true;//stop moving until a dest is chosen 
+			stopGame = true;//stop moving until a dest is chosen 
 
 			//cout << "3" << endl;
 
@@ -371,11 +465,11 @@ void GameVisuals::onMouse(int event, int x, int y, int, void*) {
 	{
 		if (pointsLabel.isBeingDraggedNow)
 			pointsLabel.isBeingDraggedNow = false;
-		if (resourcesLabel.isBeingDraggedNow)
+		else if (resourcesLabel.isBeingDraggedNow)
 			resourcesLabel.isBeingDraggedNow = false;
 
 		cout << "event: l up" << endl;
-		if (inTheMiddleOfDrawingRectangle)
+		if (isInMainMat(x, y) && inTheMiddleOfDrawingRectangle)
 		{
 			//we just finished drawing the area!
 			inTheMiddleOfDrawingRectangle = false;
@@ -399,12 +493,13 @@ void GameVisuals::onMouse(int event, int x, int y, int, void*) {
 			cout << "a dest is chosen" << endl;
 			//  draw a circle at the position
 			cv::circle(main_mat, cv::Point(x, y), 10, cv::Scalar(0, 0, 255), -1);
-			cv::imshow("world", main_mat);
+			//cv::imshow("world", main_mat);
 		}
 		break;
 	}
 
 }
+
 void GameVisuals::drawInitMatByWorld(const vector < vector<shared_ptr<GameObject>>>& tiles)
 {
 	//this function is gets called after the "+World" part
@@ -414,6 +509,8 @@ void GameVisuals::drawInitMatByWorld(const vector < vector<shared_ptr<GameObject
 	int tileCells = jsonFilePtr->sizes[GameUtils::TILE].first;
 	int tileSize = tileCells * cellSize;
 	main_mat = Mat(tilesHeight * tileCells * cellSize, tilesWidth * tileCells * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
+
+	secondary_mat = Mat(tilesHeight * tileCells * cellSize, 150, CV_8UC3, Scalar(255, 255, 255));
 
 	for (int i = 0; i < tilesHeight; ++i) {
 		for (int j = 0; j < tilesWidth; ++j) {
@@ -427,12 +524,23 @@ void GameVisuals::drawInitMatByWorld(const vector < vector<shared_ptr<GameObject
 	}
 
 	pointsLabel.texts.push_back("Score:" + to_string(gameState->points));
+	resourcesLabel.texts.push_back("nothing");
+	resourcesLabel.texts.push_back("selected");
+
 
 	pointsLabel.locationRect = Rect(0, 0, 110, 30);
+	resourcesLabel.locationRect = Rect(0, 250, 150, 200);
 
-	resourcesLabel.locationRect = Rect(0, 100, 110, 110);
+	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Grid"), std::forward_as_tuple(Rect(0, 50, 150, 50), "grid",true));
+	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Pouse"), std::forward_as_tuple(Rect(0, 150, 150, 100), "pouse moving \n to choose area",false));
+
+
+	for (const pair<string, Button>& button : buttons) {
+		button.second.drawButton(secondary_mat);
+	}
 
 	cv::namedWindow("world", cv::WINDOW_NORMAL);
+
 	cv::setMouseCallback("world", onMouse);
 
 	lastTime = getTickCount();

@@ -5,25 +5,26 @@
 #include "JsonFile.h"
 #include <string>
 #include <vector>
-#include "Structs.h"
+#include "Coordinates.h"
 #include <utility>
 //#include "GameUtils.hpp"
 #include <algorithm>
 #include <map>
 class GameObject {
 private:
+	static int roadObjects;
+
 	std::vector<int> resources;
 	Coordinates coordinates;
-	Coordinates offsetFromCell;
 	bool complete;
 	bool robber;
 	std::string category;
 	int completedAlready;
 	bool isMoving;
-
+	int roadIndex;
 	shared_ptr<JsonFile> jsonFilePtr;
 	map<string, int> transportationCounters;
-
+	void f();
 public:
 	//TODO vector of pointers to people in city
 	// Constructors
@@ -46,9 +47,13 @@ public:
 		robber(robber),
 		completedAlready(0),
 		jsonFilePtr(JsonFile::getInstance()),
-		offsetFromCell(0,0),
 		isMoving(false)
 	{
+
+		if (category == "Road") {
+			roadIndex = roadObjects++;
+		}
+
 		for (unordered_set<string>::const_iterator it = jsonFilePtr->transportationTypes.begin(); it != jsonFilePtr->transportationTypes.end(); ++it) {
 			transportationCounters[*it] = 0;
 		}
@@ -84,22 +89,19 @@ public:
 	const Coordinates& getCoordinates() const {
 		return coordinates;
 	}
-	const Coordinates& getRightBottomCoordinates() const {
+	const Coordinates getRightBottomCoordinates() const {
 		int objSize = getSize().first;
 		 Coordinates coord(coordinates.x+objSize-1,coordinates.y+objSize-1);
 		 return coord;
 	}
-
+	const int getRoadIndex()const {
+		return roadIndex;
+	}
 	void setCoordinates(const Coordinates& coordinates) {
 		this->coordinates = coordinates;
-		offsetFromCell = { 0,0 };
 	}
-	const Coordinates& getOffsetFromCell() const {
-		return offsetFromCell;
-	}
-	void setOffsetFromCell(const Coordinates& offsetFromCell) {
-		this->offsetFromCell = offsetFromCell;
-	}
+
+
 
 
 	// Getter and Setter for complete
@@ -124,7 +126,9 @@ public:
 	void setRobber(bool robber) {
 		this->robber = robber;
 	}
-
+	bool canMove() const {
+		return isPeople() || isTransportation();
+	}
 	// Getter and Setter for category
 	const std::string& getCategory() const {
 		return category;
@@ -205,7 +209,7 @@ public:
 		}
 		return -1;
 	}
-	int getTime() {
+	int getTime() const {
 		if (jsonFilePtr->times.count(category) > 0) {
 			return jsonFilePtr->times[category];
 		}
@@ -231,19 +235,19 @@ public:
 			return 0;
 		}
 	}
-	bool isPeople() {
+	bool isPeople()const  {
 		return category == "People";
 	}
-	bool isInfrustructure() {
+	bool isInfrustructure()const  {
 		if (jsonFilePtr->infrustructureTypes.count(category) > 0) {
 			return true;
 		}
 		return false;
 	}
-	bool isInfrusctuctureNotRoad() {
+	bool isInfrusctuctureNotRoad() const {
 		return isInfrustructure() && !isRoad();
 	}
-	bool isTransportation() {
+	bool isTransportation() const {
 		if (jsonFilePtr->transportationTypes.count(category) > 0) {
 			return true;
 		}
@@ -256,7 +260,7 @@ public:
 		}
 		return false;
 	}
-	bool isRoad() {
+	bool isRoad() const {
 		return category == "Road";
 	}
 	void addTransportation(string category) {

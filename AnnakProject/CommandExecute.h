@@ -67,6 +67,10 @@ private:
 	static void makeRobber(const std::vector<std::string>& args);
 	static void setPoints(const std::vector<std::string>& args);
 
+
+
+	static void moveObject(shared_ptr<GameObject> objToMove, const Coordinates& dst);
+
 	static void moveIt(const std::vector<std::string>& args);
 
 
