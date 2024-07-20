@@ -7,11 +7,10 @@
 #include "JsonFile.h"
 #include <vector>
 #include <string>
-#include "GameUtils.hpp"
 #include "HelpHeader.h"
 #include "GameVisuals.h"
 #include <random>
-
+#include "CreateCommand.h"
 
 
 
@@ -49,7 +48,8 @@ public:
 		GameVisuals::fill_game_visuals(gameState);
 		CommandExecute::fill_command_execute(gameState);
 		Asserts::fill_assert(gameState);
-
+		CreateCommand::fill_create_command(gameState); 
+		
 		gameState->addWorldToWorldMatrix(inp);
 		GameVisuals::drawInitMatByWorld(gameState->tiles);
 
@@ -90,7 +90,7 @@ public:
 			}
 			else if (GameVisuals::generateNewMoving) {
 				for (const pair<string, vector<shared_ptr<GameObject>>>& category : gameState->gameObjects) {
-					if (category.first == GameUtils::PEOPLE || category.first == GameUtils::CAR || category.first == GameUtils::HELICOPTER || category.first == GameUtils::TRUCK) {
+					if (JsonFile::getInstance()->speeds.count(category.first)>0) {
 						//its a movable object category
 						for (int i = 0; i < category.second.size(); i++) {
 							shared_ptr<GameObject> movable = category.second[i];
@@ -115,7 +115,7 @@ public:
 
 			gameState->rainMoveBuild();
 		}
-		//GameUtils::usePrintUtils(gameState->tiles, gameState->worldMatrix, gameState->gameObjects, gameState->currentSelectedGameObject != nullptr ? gameState->currentSelectedGameObject->getCoordinates() : Coordinates(-1, -1));
+		//CategoriesConstants::usePrintUtils(gameState->tiles, gameState->worldMatrix, gameState->gameObjects, gameState->currentSelectedGameObject != nullptr ? gameState->currentSelectedGameObject->getCoordinates() : Coordinates(-1, -1));
 		for (int i = 0; i < inp.steps.size() || leftToWait != 0; i++) {
 			//execute steps commands
 			//wait command- should wait

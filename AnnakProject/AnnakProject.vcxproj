@@ -131,6 +131,8 @@
   <ItemGroup>
     <ClCompile Include="AnnakProject.cpp" />
     <ClCompile Include="Asserts.cpp" />
+    <ClCompile Include="CategoriesConstants.cpp" />
+    <ClCompile Include="CategoriesConstants.h" />
     <ClCompile Include="CreateCommand.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="GameUtils.cpp" />

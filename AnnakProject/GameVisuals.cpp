@@ -1,5 +1,5 @@
 #include "GameVisuals.h"
-#include "GameUtils.hpp"
+#include "CategoriesConstants.h"
 #include <opencv2/opencv.hpp>
 #include <string> 
 #include <unordered_map> 
@@ -11,7 +11,7 @@
 #include "Validations.hpp"
 #include "CommandExecute.h"
 #include "CreateCommand.h"
-
+#include "CategoriesConstants.h"
 using namespace cv;
 using namespace std;
 // Define the static member variables
@@ -42,10 +42,10 @@ GameVisuals::MovingLabel GameVisuals::resourcesLabel;
 unordered_map<string, GameVisuals::Button> GameVisuals::buttons;
 
 void GameVisuals::fillResourcesLabelBySelected() {
-
+	shared_ptr<GameObject> selected = gameState->currentSelectedGameObject;
 
 	resourcesLabel.texts.clear();
-	if (gameState->currentSelectedGameObject == nullptr)
+	if (selected == nullptr)
 	{
 		resourcesLabel.texts.push_back("nothing");
 		resourcesLabel.texts.push_back("selected");
@@ -53,12 +53,22 @@ void GameVisuals::fillResourcesLabelBySelected() {
 	}
 	else {
 		resourcesLabel.texts.push_back("you selected:");
-		resourcesLabel.texts.push_back(gameState->currentSelectedGameObject->getCategory());
+		resourcesLabel.texts.push_back(selected->getCategory());
 		resourcesLabel.texts.push_back("");
-		for (int i = 0; i < 5; i++) {
-			resourcesLabel.texts.push_back(jsonFilePtr->resourcesTypes[i] + " " + to_string(gameState->currentSelectedGameObject->getResources()[i]));
+		for (int i = 0; i < 4; i++) {
+			resourcesLabel.texts.push_back(jsonFilePtr->resourcesTypes[i] + " " + to_string(selected->getResources()[i]));
+		}
+		if (selected->canContainAnotherObjects()) {
+			resourcesLabel.texts.push_back(CategoriesConstants::PEOPLE + " " + to_string(selected->resourceObjectsCount(CategoriesConstants::PEOPLE)));
+
+			if (selected->isInfrusctuctureNotRoad())
+				for (const string& type : jsonFilePtr->transportationTypes) {
+					resourcesLabel.texts.push_back(type + " " + to_string(selected->resourceObjectsCount(type)));
+
+				}
 		}
 	}
+	resourcesLabel.locationRect.height = resourcesLabel.texts.size() * 25;
 
 }
 
@@ -83,29 +93,29 @@ void GameVisuals::fill_game_visuals(shared_ptr<GameState> gameState)
 	vector<string> imagesNamesPaople = { "0.png" };
 
 
-	category_image_map[GameUtils::GROUND] = imread(baseTiles + imagesNamesTiles[1]);
-	category_image_map[GameUtils::WATER] = imread(baseTiles + imagesNamesTiles[2]);
-	category_image_map[GameUtils::FOREST] = imread(baseTiles + imagesNamesTiles[3]);
-	category_image_map[GameUtils::FIELD] = imread(baseTiles + imagesNamesTiles[4]);
-	category_image_map[GameUtils::IRON_MINE] = imread(baseTiles + imagesNamesTiles[5]);
-	category_image_map[GameUtils::BLOCKS_MINE] = imread(baseTiles + imagesNamesTiles[6]);
+	category_image_map[CategoriesConstants::GROUND] = imread(baseTiles + imagesNamesTiles[1]);
+	category_image_map[CategoriesConstants::WATER] = imread(baseTiles + imagesNamesTiles[2]);
+	category_image_map[CategoriesConstants::FOREST] = imread(baseTiles + imagesNamesTiles[3]);
+	category_image_map[CategoriesConstants::FIELD] = imread(baseTiles + imagesNamesTiles[4]);
+	category_image_map[CategoriesConstants::IRON_MINE] = imread(baseTiles + imagesNamesTiles[5]);
+	category_image_map[CategoriesConstants::BLOCKS_MINE] = imread(baseTiles + imagesNamesTiles[6]);
 
-	category_image_map[GameUtils::CITY] = imread(baseSettlements + imagesNamesSettlements[0]);
-	category_image_map[GameUtils::VILLAGE] = imread(baseSettlements + imagesNamesSettlements[1]);
-	category_image_map[GameUtils::ROAD] = imread(baseSettlements + imagesNamesSettlements[2]);
+	category_image_map[CategoriesConstants::CITY] = imread(baseSettlements + imagesNamesSettlements[0]);
+	category_image_map[CategoriesConstants::VILLAGE] = imread(baseSettlements + imagesNamesSettlements[1]);
+	category_image_map[CategoriesConstants::ROAD] = imread(baseSettlements + imagesNamesSettlements[2]);
 
-	category_image_map[GameUtils::CAR] = imread(baseVehicles + imagesNamesVehicles[0]);
-	category_image_map[GameUtils::TRUCK] = imread(baseVehicles + imagesNamesVehicles[1]);
-	category_image_map[GameUtils::HELICOPTER] = imread(baseVehicles + imagesNamesVehicles[2]);
+	category_image_map[CategoriesConstants::CAR] = imread(baseVehicles + imagesNamesVehicles[0]);
+	category_image_map[CategoriesConstants::TRUCK] = imread(baseVehicles + imagesNamesVehicles[1]);
+	category_image_map[CategoriesConstants::HELICOPTER] = imread(baseVehicles + imagesNamesVehicles[2]);
 
-	category_image_map[GameUtils::PEOPLE] = imread(basePeople + imagesNamesPaople[0]);
+	category_image_map[CategoriesConstants::PEOPLE] = imread(basePeople + imagesNamesPaople[0]);
 
 
 	for (int i = 0; i < 11; i++) {
-		category_states_map[GameUtils::PEOPLE].push_back(imread(baseWalking + to_string(i) + ".png"));
+		category_states_map[CategoriesConstants::PEOPLE].push_back(imread(baseWalking + to_string(i) + ".png"));
 	}
 	// Check if all images are loaded
-	for (const auto& anim : category_states_map[GameUtils::PEOPLE]) {
+	for (const auto& anim : category_states_map[CategoriesConstants::PEOPLE]) {
 		if (anim.empty()) {
 			cerr << "Error: Could not load image for category WALKING PEOPLE" << endl;
 		}
@@ -117,19 +127,8 @@ void GameVisuals::fill_game_visuals(shared_ptr<GameState> gameState)
 	}
 }
 
-void GameVisuals::addObject(shared_ptr<GameObject> newObject)
-{
-	//this function is called after a new object is born or an object is moving
-	pointsLabel.texts[0] = "Score:" + to_string(gameState->points);
-	int cellSize = 30;
-	Mat obj;
-	int objSize = newObject->getSize().first * cellSize;
-	resize(category_image_map[newObject->getCategory()], obj, Size(objSize, objSize), INTER_LINEAR);
-	Rect placeForNewObj((newObject->getCoordinates().x - 1) * cellSize, (newObject->getCoordinates().y - 1) * cellSize, objSize, objSize);
-	obj.copyTo(main_mat(placeForNewObj));
 
-}
-void GameVisuals::addObjectState(shared_ptr<GameObject> newObject)
+void GameVisuals::addObjectState(Mat& copy, shared_ptr<GameObject> newObject)
 {
 	int cellSize = 30;
 	Mat obj;
@@ -142,15 +141,41 @@ void GameVisuals::addObjectState(shared_ptr<GameObject> newObject)
 
 
 }
-void GameVisuals::addObject(shared_ptr<GameObject> newObject, DirectionsEnum direction)
+void GameVisuals::addAllMovables(Mat& copy) {
+	for (const pair<string, vector<shared_ptr<GameObject>>>& category : gameState->gameObjects) {
+		if (jsonFilePtr->speeds.count(category.first) == 0) //not movable
+			continue;
+		for (int i = 0; i < category.second.size(); i++) {
+			shared_ptr<GameObject> movable = category.second[i];
+			if (movable->getIsInsideAnother())
+				continue;
+			addObject(copy, movable);
+		}
+	}
+}
+//add static object to main mat
+void GameVisuals::addObject(shared_ptr<GameObject> newObject)
 {
-	//this function is called after a new object is born or an object is moving
 	int cellSize = 30;
 	Mat obj;
 	int objSize = newObject->getSize().first * cellSize;
 	resize(category_image_map[newObject->getCategory()], obj, Size(objSize, objSize), INTER_LINEAR);
 	Rect placeForNewObj((newObject->getCoordinates().x - 1) * cellSize, (newObject->getCoordinates().y - 1) * cellSize, objSize, objSize);
-	switch (direction) {
+
+	obj.copyTo(main_mat(placeForNewObj));
+}
+//add movable object to copy
+void GameVisuals::addObject(Mat& copy, shared_ptr<GameObject> newObject)
+{
+	//this function is called for movables: every time
+
+	int cellSize = 30;
+	Mat obj;
+	int objSize = newObject->getSize().first * cellSize;
+	resize(category_image_map[newObject->getCategory()], obj, Size(objSize, objSize), INTER_LINEAR);
+	Rect placeForNewObj((newObject->getCoordinates().x - 1) * cellSize, (newObject->getCoordinates().y - 1) * cellSize, objSize, objSize);
+
+	switch (newObject->getDirection()) {
 	case DirectionsEnum::RIGHT:
 		cv::rotate(obj, obj, cv::ROTATE_90_CLOCKWISE);
 		break;
@@ -162,7 +187,7 @@ void GameVisuals::addObject(shared_ptr<GameObject> newObject, DirectionsEnum dir
 		break;
 	}
 
-	obj.copyTo(main_mat(placeForNewObj));
+	obj.copyTo(copy(placeForNewObj));
 
 }
 void GameVisuals::recover(const Coordinates& coord, shared_ptr<GameObject> obj) {
@@ -201,7 +226,7 @@ void GameVisuals::fillChosenAreaDetails()
 
 	vector<shared_ptr<GameObject>> objectsInRect;
 	for (const pair<string, vector<shared_ptr<GameObject>>>& category : gameState->gameObjects) {
-		if (category.first == GameUtils::PEOPLE || category.first == GameUtils::CAR || category.first == GameUtils::HELICOPTER || category.first == GameUtils::TRUCK) {
+		if (category.first == CategoriesConstants::PEOPLE || category.first == CategoriesConstants::CAR || category.first == CategoriesConstants::HELICOPTER || category.first == CategoriesConstants::TRUCK) {
 			//its a movable object category
 			for (int i = 0; i < category.second.size(); i++) {
 				shared_ptr<GameObject> movable = category.second[i];
@@ -266,7 +291,7 @@ void GameVisuals::draw()
 	//int cellSize = 30;
 	//int tilesWidth = game->tiles[0].size();
 	//int tilesHeight = game->tiles.size();
-	//int tileCells = jsonFilePtr->sizes[GameUtils::TILE].first;
+	//int tileCells = jsonFilePtr->sizes[CategoriesConstants::TILE].first;
 	//int tileSize = tileCells * cellSize;
 	//cv::Mat main_image(tilesHeight * tileCells * cellSize, tilesWidth * tileCells * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -274,8 +299,8 @@ void GameVisuals::draw()
 
 
 
-	//for (int i = 0; i < GameUtils::categories.size(); i++) {//each category
-	//	string category = GameUtils::categories[i];
+	//for (int i = 0; i < CategoriesConstants::categories.size(); i++) {//each category
+	//	string category = CategoriesConstants::categories[i];
 	//	if (!jsonFilePtr->isTile(category))
 	//	{
 	//		for (int j = 0; j < game->gameObjects[category].size(); j++) {//each object from that cetegory
@@ -309,11 +334,11 @@ void GameVisuals::show()
 	callCount++;
 
 	int cellSize = 30;
-	int tileCells = jsonFilePtr->sizes[GameUtils::TILE].first;
+	int tileCells = jsonFilePtr->sizes[CategoriesConstants::TILE].first;
 	int tileSize = tileCells * cellSize;
 
 
-	Mat copyWithRectangleAndLabel = main_mat.clone();
+	Mat copyForMovables = main_mat.clone();
 	Mat secondary_copy = secondary_mat.clone();
 
 	pointsLabel.drawLabel(secondary_copy);
@@ -322,7 +347,7 @@ void GameVisuals::show()
 	if (recBeing != nullptr && recBeing->movedABit) {
 		//show current state + the rectangle
 
-		rectangle(copyWithRectangleAndLabel, Point(recBeing->initX, recBeing->initY), Point(recBeing->x, recBeing->y), Scalar(0, 0, 255), 2);
+		rectangle(copyForMovables, Point(recBeing->initX, recBeing->initY), Point(recBeing->x, recBeing->y), Scalar(0, 0, 255), 2);
 		if (!inTheMiddleOfDrawingRectangle)
 			//resourcesLabel.drawLabel(secondary_copy);
 			cout << "show with rect" << callCount << endl;
@@ -339,26 +364,26 @@ void GameVisuals::show()
 			lastTime = currentTime;
 			for (const auto& movingObj : gameState->movingGameObjects) {
 				if (movingObj.isPeople) {
-					addObjectState(movingObj.gameObject);
+					addObjectState(copyForMovables, movingObj.gameObject);
 				}
 			}
 		}
 	}
-
+	addAllMovables(copyForMovables);
 
 	// Check if the heights are the same (they should be as per your description)
-	if (copyWithRectangleAndLabel.rows != secondary_copy.rows) {
+	if (copyForMovables.rows != secondary_copy.rows) {
 		std::cerr << "The heights of the matrices are not the same!" << std::endl;
 
 	}
 	if (buttons["Grid"].isPushed) {
-		drawGrid(copyWithRectangleAndLabel, 30, jsonFilePtr->sizes[GameUtils::TILE].first);
+		drawGrid(copyForMovables, 30, jsonFilePtr->sizes[CategoriesConstants::TILE].first);
 	}
 
 
 	// Concatenate the two images horizontally
 	cv::Mat combined;
-	cv::hconcat(copyWithRectangleAndLabel, secondary_copy, combined);
+	cv::hconcat(copyForMovables, secondary_copy, combined);
 
 	// Display the combined image
 	cv::imshow("world", combined);
@@ -422,10 +447,10 @@ void GameVisuals::onMouse(int event, int x, int y, int, void*) {
 				}
 			}
 			else {
-				Coordinates coord(x / cellSize + 1, y / cellSize + 1); 
+				Coordinates coord(x / cellSize + 1, y / cellSize + 1);
 
-		 		if (gameState->currentSelectedGameObject!=nullptr&& gameState->currentSelectedGameObject->canMove()&&!gameState->currentSelectedGameObject->getIsMoving()) {
-					CreateCommand::selecteDstForMovable(coord);   
+				if (gameState->currentSelectedGameObject != nullptr && gameState->currentSelectedGameObject->canMove() && !gameState->currentSelectedGameObject->getIsMoving()) {
+					CreateCommand::selecteDstForMovable(coord);
 				}
 
 				CreateCommand::createSelectCommand(coord);
@@ -506,7 +531,7 @@ void GameVisuals::drawInitMatByWorld(const vector < vector<shared_ptr<GameObject
 	int cellSize = 30;
 	int tilesWidth = tiles[0].size();
 	int tilesHeight = tiles.size();
-	int tileCells = jsonFilePtr->sizes[GameUtils::TILE].first;
+	int tileCells = jsonFilePtr->sizes[CategoriesConstants::TILE].first;
 	int tileSize = tileCells * cellSize;
 	main_mat = Mat(tilesHeight * tileCells * cellSize, tilesWidth * tileCells * cellSize, CV_8UC3, cv::Scalar(255, 255, 255));
 
@@ -531,13 +556,14 @@ void GameVisuals::drawInitMatByWorld(const vector < vector<shared_ptr<GameObject
 	pointsLabel.locationRect = Rect(0, 0, 110, 30);
 	resourcesLabel.locationRect = Rect(0, 250, 150, 200);
 
-	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Grid"), std::forward_as_tuple(Rect(0, 50, 150, 50), "grid",true));
-	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Pouse"), std::forward_as_tuple(Rect(0, 150, 150, 100), "pouse moving \n to choose area",false));
+	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Grid"), std::forward_as_tuple(Rect(0, 50, 150, 50), "grid", true));
+	buttons.emplace(std::piecewise_construct, std::forward_as_tuple("Pouse"), std::forward_as_tuple(Rect(0, 150, 150, 100), "pouse moving \n to choose area", false));
 
 
 	for (const pair<string, Button>& button : buttons) {
 		button.second.drawButton(secondary_mat);
 	}
+	resourcesLabel.locationRect.height = resourcesLabel.texts.size() * 25;
 
 	cv::namedWindow("world", cv::WINDOW_NORMAL);
 

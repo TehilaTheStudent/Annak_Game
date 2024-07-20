@@ -3,6 +3,6 @@
 
 
 enum DirectionsEnum {
-	UP,DOWN,LEFT,RIGHT
+	UP,DOWN,LEFT,RIGHT,SAME 
 };
 #endif //DIRECTIONS_ENUM

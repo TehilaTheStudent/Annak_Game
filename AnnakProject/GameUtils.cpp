@@ -3,35 +3,7 @@
 #include "GameUtils.hpp"
 #include <iomanip>
 #include <sstream>
-const std::string GameUtils::GROUND = "Ground";
-const std::string GameUtils::WATER = "Water";
-const std::string GameUtils::FOREST = "Forest";
-const std::string GameUtils::FIELD = "Field";
-const std::string GameUtils::IRON_MINE = "IronMine";
-const std::string GameUtils::BLOCKS_MINE = "BlocksMine";
-const std::string GameUtils::ROAD = "Road";
-const std::string GameUtils::VILLAGE = "Village";
-const std::string GameUtils::CITY = "City";
-const std::string GameUtils::CAR = "Car";
-const std::string GameUtils::TRUCK = "Truck";
-const std::string GameUtils::HELICOPTER = "Helicopter";
-const std::string GameUtils::PEOPLE = "People";
-const std::string GameUtils::TILE = "Tile";
-const vector<string> GameUtils::categories = {
-	GameUtils::WATER,
-	GameUtils::GROUND,
-	GameUtils::FOREST,
-	GameUtils::FIELD,
-	GameUtils::IRON_MINE,
-	GameUtils::BLOCKS_MINE,
-	GameUtils::CITY,
-	GameUtils::ROAD,
-	GameUtils::VILLAGE,
-	GameUtils::PEOPLE,
-	GameUtils::CAR,
-	GameUtils::TRUCK,
-	GameUtils::HELICOPTER
-};
+
 
 void GameUtils::printInfrastructure(const std::vector<std::vector<shared_ptr<ObjectsInXY>>>& worldMatrix, const Coordinates& selected)
 {

@@ -68,7 +68,7 @@ public:
 		Rect locationRect;
 		vector<string> texts;
 		void drawLabel(Mat& copy) {
-
+				
 			rectangle(copy, locationRect, Scalar(255, 0, 0), -1);
 			for (int i = 0; i < texts.size(); i++) {
 				cv::putText(copy, texts[i], locationRect.tl() + cv::Point(0,(i+1)* 20), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
@@ -107,10 +107,15 @@ public:
 	static bool mouseClicked; 
 	static void fillResourcesLabelBySelected();
 	static void fill_game_visuals(shared_ptr<GameState> gameState);
-	static void addObject(shared_ptr<GameObject> newObject);
-	static void addObjectState(shared_ptr<GameObject> newObject);
+	static void addObject(Mat & copy,shared_ptr<GameObject> newObject);
 
-	static void addObject(shared_ptr<GameObject> newObject, DirectionsEnum direction);
+	static void addObjectState(Mat& copy, shared_ptr<GameObject> newObject);
+
+	static void addAllMovables(Mat& copy);
+
+	static void addObject(shared_ptr<GameObject> newObject);
+
+
 
 	static void recover(const Coordinates& coord, shared_ptr<GameObject> obj);
 	static void draw();

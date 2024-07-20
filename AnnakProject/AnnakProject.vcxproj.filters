@@ -1,77 +1,72 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Input">
-      <UniqueIdentifier>{40e3842e-27aa-4dde-b4bc-56b38848b7ad}</UniqueIdentifier>
-    </Filter>
     <Filter Include="GameModels">
       <UniqueIdentifier>{29f28891-a404-4dea-86ff-60597a3f3854}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Commands">
+      <UniqueIdentifier>{6f72d6c9-148e-4b37-b3a8-a9b85c7e7549}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{10c82dca-3f89-43fd-8234-39db4a2dca9f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{40e3842e-27aa-4dde-b4bc-56b38848b7ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assert">
+      <UniqueIdentifier>{8e7fdf51-f46b-4808-b313-0f944c6908eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="flow control">
+      <UniqueIdentifier>{58551412-9c08-4d8d-9498-6d8fb60f1193}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="visuals">
+      <UniqueIdentifier>{6d488d51-4a15-45f2-8e5a-b621772ad6f6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AnnakProject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Command.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Asserts.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameUtils.cpp">
-      <Filter>GameModels</Filter>
-    </ClCompile>
     <ClCompile Include="CommandExecute.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonFile.cpp">
-      <Filter>GameModels</Filter>
-    </ClCompile>
-    <ClCompile Include="Validations.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameVisuals.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameObject.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Commands</Filter>
     </ClCompile>
     <ClCompile Include="CreateCommand.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="Command.cpp">
+      <Filter>Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="GameUtils.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonFile.cpp">
+      <Filter>config</Filter>
+    </ClCompile>
+    <ClCompile Include="Validations.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>GameModels</Filter>
+    </ClCompile>
+    <ClCompile Include="Asserts.cpp">
+      <Filter>Assert</Filter>
+    </ClCompile>
+    <ClCompile Include="AnnakProject.cpp">
+      <Filter>flow control</Filter>
+    </ClCompile>
+    <ClCompile Include="GameVisuals.cpp">
+      <Filter>visuals</Filter>
+    </ClCompile>
+    <ClCompile Include="CategoriesConstants.h">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="CategoriesConstants.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Command.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Asserts.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Input.h">
-      <Filter>Input</Filter>
-    </ClInclude>
-    <ClInclude Include="json.hpp">
-      <Filter>Input</Filter>
-    </ClInclude>
     <ClInclude Include="GameObject.hpp">
-      <Filter>GameModels</Filter>
-    </ClInclude>
-    <ClInclude Include="GameUtils.hpp">
       <Filter>GameModels</Filter>
     </ClInclude>
     <ClInclude Include="GameState.hpp">
@@ -80,38 +75,56 @@
     <ClInclude Include="Coordinates.h">
       <Filter>GameModels</Filter>
     </ClInclude>
-    <ClInclude Include="JsonFile.h">
-      <Filter>GameModels</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandExecute.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ObjectMoving.h">
       <Filter>GameModels</Filter>
     </ClInclude>
     <ClInclude Include="ObjectsInXY.h">
       <Filter>GameModels</Filter>
     </ClInclude>
-    <ClInclude Include="Validations.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="Command.h">
+      <Filter>Commands</Filter>
     </ClInclude>
-    <ClInclude Include="HelpHeader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GameVisuals.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectionsEnum.h">
-      <Filter>GameModels</Filter>
-    </ClInclude>
-    <ClInclude Include="GameControl.h">
-      <Filter>GameModels</Filter>
-    </ClInclude>
-    <ClInclude Include="RoadsGraph.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="CommandExecute.h">
+      <Filter>Commands</Filter>
     </ClInclude>
     <ClInclude Include="CreateCommand.h">
+      <Filter>Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="GameUtils.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="DirectionsEnum.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonFile.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="Utility.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="HelpHeader.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Validations.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="RoadsGraph.h">
       <Filter>GameModels</Filter>
+    </ClInclude>
+    <ClInclude Include="Asserts.hpp">
+      <Filter>Assert</Filter>
+    </ClInclude>
+    <ClInclude Include="GameControl.h">
+      <Filter>flow control</Filter>
+    </ClInclude>
+    <ClInclude Include="GameVisuals.h">
+      <Filter>visuals</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

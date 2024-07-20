@@ -8,7 +8,7 @@
 #include "Coordinates.h"
 
 using namespace std;
-class GameState;
+//class GameState;
 
 class Validations {
 public:

@@ -4,7 +4,7 @@
 #include <memory>
 #include "GameObject.hpp"
 #include "Coordinates.h"
-#include "GameUtils.hpp"
+#include "CategoriesConstants.h"
 #include "JsonFile.h"
 #include "Input.h"
 #include <algorithm>
@@ -127,7 +127,7 @@ public:
 						if (withResource->second.second == resourceTypeIndex) {//found the categpory that should get +1 resource
 							for (int i = 0; i < gameObjects[withResource->first].size(); i++) {//grow resource to all gameObjects of this category
 								if (gameObjects[withResource->first][i]->getCategory() == withResource->first) {
-									gameObjects[withResource->first][i]->resourceExisting(resourceTypeIndex, 1);
+									gameObjects[withResource->first][i]->setMostResource(resourceTypeIndex, 1);
 								}
 							}
 						}
@@ -241,7 +241,7 @@ public:
 	}
 
 	void startMovingObject(ObjectMoving newMovingObject) {
-		
+
 		movingGameObjects.push_back(newMovingObject);
 	}
 
@@ -260,24 +260,44 @@ public:
 		return getObjectsInXYInCoordinates(coordinates)->getTopMost();
 	}
 
-	bool placeToMoveToForVehicle(const Coordinates& coord) {
+	bool placeToMoveToForVehicle(const Coordinates& coord,shared_ptr<GameObject> vehicle) {
 
-		bool isHasTile = hasTile(coord); 
-		bool isNotWater = getTile(coord)->getCategory()!=GameUtils::WATER; 
-		bool isHasRoad = isThereRoad(coord); 
-		bool isPlaceFree = getObjectsInXYInCoordinates(coord) != nullptr && getObjectsInXYInCoordinates(coord)->placeToMoveToForVehicle();
+		bool isHasTile = hasTile(coord);
+		bool isNotWater = getTile(coord)->getCategory() != CategoriesConstants::WATER;
+		bool isHasRoad = isThereRoad(coord);
+		bool isPlaceFreeInfrustructure = getObjectsInXYInCoordinates(coord) != nullptr && getObjectsInXYInCoordinates(coord)->placeToMoveToForVehicle(vehicle);
 
-		
 
-		return isHasTile && isNotWater && isHasRoad && isPlaceFree;
+
+		return isHasTile && isNotWater && (isHasRoad || isPlaceFreeInfrustructure); 
+	}
+	bool canDepositThere(const Coordinates& coord) {
+		//a transportation(not moving!) or a village\city
+		shared_ptr<GameObject> topMostInCoord = getTopMostGameObject(coord);
+
+		if (topMostInCoord!=nullptr&&(topMostInCoord->canContainAnotherObjects() && !topMostInCoord->getIsMoving())) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 
+	bool canWorkThere(const Coordinates& coord) {
+		//a tile not ground not water 
+		if (hasTile(coord) && getTile(coord)->isTileWithResources()) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
 	bool placeToMoveToForPerson(const Coordinates& coord) {
 		return  hasTile(coord) &&
 			getTile(coord)->getCategory() != "Water" &&
 			(getObjectsInXYInCoordinates(coord) == nullptr || getObjectsInXYInCoordinates(coord)->placeToMoveToForPerson());
 	}
-	bool occupiedByMovingObject(const Coordinates & dst) {
+	bool occupiedByMovingObject(const Coordinates& dst) {
 		if (!objectsInXYNullPtr(dst) && getObjectsInXYInCoordinates(dst)->occupiedByMovingObj()) {
 			return true;
 		}
@@ -288,7 +308,7 @@ public:
 	void moveMovingGameObjects() {
 		bool movedThisTime = false;
 		for (list<ObjectMoving>::iterator movingObj = movingGameObjects.begin(); movingObj != movingGameObjects.end(); movingObj++) {
-
+		
 			/*	Coordinates next = movingObj->calcNextStep();
 				if (!objectsInXYNullPtr(next) && getObjectsInXYInCoordinates(next)->occupiedByMovingObj()) {
 					cout << "continue" << endl;
@@ -322,7 +342,7 @@ public:
 				continue;
 			}
 			else if (!isPerson
-				//&& movingObj->gameObject->getCategory() != GameUtils::HELICOPTER
+				//&& movingObj->gameObject->getCategory() != CategoriesConstants::HELICOPTER
 				)
 			{
 
@@ -331,7 +351,7 @@ public:
 					direction = DirectionsEnum::RIGHT;
 					for (int i = in.y; i < in.y + objSize; i++) {
 						Coordinates coord(to.x + objSize - 1, i);
-						if (!placeToMoveToForVehicle(coord)) {
+						if (!placeToMoveToForVehicle(coord,movingObj->gameObject)) {
 							//the place i want to take is full, 
 							movingObj->gameObject->setIsMoving(false);
 							movingObj = movingGameObjects.erase(movingObj);
@@ -347,7 +367,7 @@ public:
 					direction = DirectionsEnum::LEFT;
 					for (int i = in.y; i < in.y + objSize; i++) {
 						Coordinates coord(to.x, i);
-						if (!placeToMoveToForVehicle(coord)) {
+						if (!placeToMoveToForVehicle(coord, movingObj->gameObject)) { 
 
 							//the place i want to take is full, 
 							movingObj->gameObject->setIsMoving(false);
@@ -364,8 +384,8 @@ public:
 					direction = DirectionsEnum::DOWN;
 					for (int i = in.x; i < in.x + objSize; i++) {
 						Coordinates coord(i, to.y + objSize - 1);
-						if (!placeToMoveToForVehicle(coord)) {
-							//the place i want to take is full, 
+						if (!placeToMoveToForVehicle(coord, movingObj->gameObject)) { 
+							//the place i want to take is full,  
 							movingObj->gameObject->setIsMoving(false);
 							movingObj = movingGameObjects.erase(movingObj);
 							if (movingObj == movingGameObjects.end())
@@ -379,7 +399,7 @@ public:
 					direction = DirectionsEnum::UP;
 					for (int i = in.x; i < in.x + objSize; i++) {
 						Coordinates coord(i, to.y);
-						if (!placeToMoveToForVehicle(coord)) {
+						if (!placeToMoveToForVehicle(coord, movingObj->gameObject)) { 
 							//the place i want to take is full, 
 							movingObj->gameObject->setIsMoving(false);
 							movingObj = movingGameObjects.erase(movingObj);
@@ -399,43 +419,47 @@ public:
 			//in the place that he left, get the top most and recover it
 
 			if (isPerson) {//its a person
-				GameVisuals::recover(in, getTopMostGameObject(in));
+				//GameVisuals::recover(in, getTopMostGameObject(in));
 			}
 			else {//its transportation
 				if (direction == DirectionsEnum::RIGHT) {//-->
+					movingObj->gameObject->setDirection(DirectionsEnum::RIGHT);
 					for (int y = in.y; y < in.y + objSize; y++) {
 						Coordinates coord(in.x, y);
-						GameVisuals::recover(coord, getTopMostGameObject(coord));
+						//GameVisuals::recover(coord, getTopMostGameObject(coord));
 					}
 				}
 				else if (direction == DirectionsEnum::LEFT) {//<-- 
+					movingObj->gameObject->setDirection(DirectionsEnum::LEFT);
 					for (int y = in.y; y < in.y + objSize; y++) {
 						Coordinates coord(to.x + objSize, y);
-						GameVisuals::recover(coord, getTopMostGameObject(coord));
+						//GameVisuals::recover(coord, getTopMostGameObject(coord));
 					}
 				}
-				else if (direction == DirectionsEnum::DOWN) {// \/ 
+				else if (direction == DirectionsEnum::DOWN) {// \/
+					movingObj->gameObject->setDirection(DirectionsEnum::DOWN);
 					for (int x = in.x; x < in.x + objSize; x++) {
 						Coordinates coord(x, in.y);
-						GameVisuals::recover(coord, getTopMostGameObject(coord));
+						//GameVisuals::recover(coord, getTopMostGameObject(coord));
 					}
 				}
 				else {// /\       /
 					for (int x = in.x; x < in.x + objSize; x++) {
+						movingObj->gameObject->setDirection(DirectionsEnum::UP);
 						Coordinates coord(x, to.y + objSize);
-						GameVisuals::recover(coord, getTopMostGameObject(coord));
+						//GameVisuals::recover(coord, getTopMostGameObject(coord));
 					}
 				}
 			}
 			addNewGameObjectToWorld(movingObj->gameObject, movingObj->current);
-			if (isPerson) {
+		/*	if (isPerson) {
 				GameVisuals::addObject(movingObj->gameObject);
 			}
 			else {
-				GameVisuals::addObject(movingObj->gameObject, direction);
-			}
+				GameVisuals::addObject(movingObj->gameObject);
+			}*/
 
-			//	GameUtils::usePrintUtils(tiles, worldMatrix, gameObjects, currentSelectedGameObject != nullptr ? currentSelectedGameObject->getCoordinates() : Coordinates(-1, -1));
+			//	CategoriesConstants::usePrintUtils(tiles, worldMatrix, gameObjects, currentSelectedGameObject != nullptr ? currentSelectedGameObject->getCoordinates() : Coordinates(-1, -1));
 			movedThisTime = true;
 
 			if (!movingObj->reached())
@@ -443,23 +467,23 @@ public:
 
 			Coordinates& dst = movingObj->dst;
 
-			if (movingObj->reason == "Work") {
+			if (movingObj->reason == ReasonsEnum::Work) {
 				//take resource from tile ASK to where?
 
 				shared_ptr<GameObject> tileToWorkOn = getTile(Coordinates(dst.x - 1, dst.y - 1));
 				int resourceTypeIndex = jsonFilePtr->cateoryAmountResourceIndex[tileToWorkOn->getCategory()].second;
 				if (tileToWorkOn->getResources()[resourceTypeIndex] > 0)//cant take from empty
 				{
-					tileToWorkOn->resourceExisting(resourceTypeIndex, tileToWorkOn->getResources()[resourceTypeIndex] - 1);//subtract 1 from tile
-					movingObj->gameObject->resourceExisting(resourceTypeIndex, movingObj->gameObject->getResources()[resourceTypeIndex] + 1);//add 1 to the person?ASK
+					tileToWorkOn->setMostResource(resourceTypeIndex, tileToWorkOn->getResources()[resourceTypeIndex] - 1);//subtract 1 from tile
+					movingObj->gameObject->setMostResource(resourceTypeIndex, movingObj->gameObject->getResources()[resourceTypeIndex] + 1);//add 1 to the person?ASK
 
 				}
 			}
-			else if (movingObj->reason == "Move") {
+			else if (movingObj->reason ==ReasonsEnum:: Move) {
 				if (movingObj->gameObject->getCategory() == "People") {//if its a person moving
 					if (getObjectsInXYInCoordinates(movingObj->dst)->hasInfrustructureNotRoad()) {//if moves to infrustructure that is not road
 						shared_ptr<GameObject> theInfrustructureInDst = getObjectsInXYInCoordinates(movingObj->dst)->infrastructure;
-						int peopleResourceTypeIndex = jsonFilePtr->resourceTypeIndex[GameUtils::PEOPLE];
+						int peopleResourceTypeIndex = jsonFilePtr->resourceTypeIndex[CategoriesConstants::PEOPLE];
 						if (theInfrustructureInDst->hasCapacities() && theInfrustructureInDst->getCapacities()[peopleResourceTypeIndex] == theInfrustructureInDst->getResources()[peopleResourceTypeIndex]) {
 							// 
 						}
@@ -470,6 +494,12 @@ public:
 
 
 				}
+			}
+			else if (movingObj->reason == ReasonsEnum::Deposit) {
+				//add to the dst, disappear
+				movingObj->gameObject->setIsInsideAnother(true);
+				movingObj->depositIntoIt->addResourceObject(movingObj->gameObject);
+				removeExistingGameObjectFromWorldMatrix(movingObj->gameObject);
 			}
 			//this person/transportation finished moving
 			movingObj->gameObject->setIsMoving(false);
@@ -484,22 +514,30 @@ public:
 		}*/
 
 	}
-	vector<shared_ptr<GameObject>> roadsAroundRoad( const Coordinates& roadCoord, int roadSize)
+	vector<shared_ptr<GameObject>> roadsAroundInfrustructure(const Coordinates& topLeft, int roadSize, int objSize)
 	{
 		vector<shared_ptr<GameObject>> roadsAround;
 
 		vector<Coordinates > places;
-		places.push_back(roadCoord + Coordinates(0, -1));// /\ /
-		places.push_back(roadCoord + Coordinates(0, roadSize));// \/ 
-		places.push_back(roadCoord + Coordinates(roadSize, 0)); //-->
-		places.push_back(roadCoord + Coordinates(-1, 0));//<--
 
-		
+		//top	+ bottom
+		for (int i = topLeft.x; i < objSize + topLeft.x; i += roadSize) {
+			places.push_back(Coordinates(i, topLeft.y - 1));//top
+			places.push_back(Coordinates(i, topLeft.y + objSize));//bottom
+		}
 
-		for (const Coordinates& coord : places) { 
+
+
+		//left + right
+		for (int i = topLeft.y; i < objSize + topLeft.y; i += roadSize) { 
+			places.push_back(Coordinates(topLeft.x - 1, i));//left 
+			places.push_back(Coordinates(topLeft.x +objSize, i));//right 
+		}
+
+		for (const Coordinates& coord : places) {
 			if (isThereRoad(coord)) {
-				roadsAround.push_back(getObjectsInXYInCoordinates(coord)->infrastructure); 
-			} 
+				roadsAround.push_back(getObjectsInXYInCoordinates(coord)->infrastructure);
+			}
 		}
 
 
@@ -558,7 +596,7 @@ public:
 	int rainLeftToFall;
 	map<string, pair<int, int>> rainsNeedToRegrow;
 	vector < vector<shared_ptr<GameObject>>> tiles;
-	RoadsGraph roadsGraph; 
+	RoadsGraph roadsGraph;
 	list<ObjectMoving> movingGameObjects;
 	list<shared_ptr<GameObject>> buildingObjects;
 	shared_ptr<JsonFile> jsonFilePtr;

@@ -23,15 +23,24 @@ public:
 	}
 	static void selecteDstForMovable(const Coordinates& coord) {
 		//movable can be: 
-		//people->road/tile(work),car,infrus(deposit) ,
+		//people->road/ground(move) tile(work),car,infrus(deposit) ,
 		//car->road(move)/ifrus(deposit)
+		shared_ptr<Command> go;
+		if (gameState->canDepositThere(coord)) {//deposit (a transportation/ infrustructure (not road!) there
+			go = make_shared<Command>("Deposit");
+		}
+		else if (gameState->canWorkThere(coord)) {
+			go = make_shared<Command>("Work");  
+		}
+		else {//move 
+			go = make_shared<Command>("Move");
 
-		shared_ptr<Command> move = make_shared<Command>("Move");
-		coordIntoArgs(coord, move);
-		CommandExecute::executeCommand(move, false);
+		}
 
+		coordIntoArgs(coord, go);
+		CommandExecute::executeCommand(go, false);
 	}
-	static void coordIntoArgs(const Coordinates& coord, shared_ptr<Command> command) 
+	static void coordIntoArgs(const Coordinates& coord, shared_ptr<Command> command)
 	{
 		command->arguments.push_back(to_string(coord.x));
 		command->arguments.push_back(to_string(coord.y));

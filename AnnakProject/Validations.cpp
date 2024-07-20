@@ -1,5 +1,6 @@
 #include "Validations.hpp"
-#include "GameUtils.hpp"
+#include "CategoriesConstants.h"
+
 using namespace std;
 bool Validations::isEmptyGround(const vector<vector<shared_ptr<GameObject>>>& tiles, const std::vector<std::vector<shared_ptr<ObjectsInXY>>>& worldMatrix, int objSide, Coordinates coordinates)
 {
@@ -7,7 +8,7 @@ bool Validations::isEmptyGround(const vector<vector<shared_ptr<GameObject>>>& ti
 	for (int i = coordinates.y; i < coordinates.y + objSide; i++) {
 		for (int j = coordinates.x; j < coordinates.x + objSide; j++) {
 			if (!(tiles[(i - 1) / 5][(j - 1) / 5] != nullptr &&
-				tiles[(i - 1) / 5][(j - 1) / 5]->getCategory() == GameUtils::GROUND
+				tiles[(i - 1) / 5][(j - 1) / 5]->getCategory() == CategoriesConstants::GROUND
 				&& (worldMatrix[i - 1][j - 1] == nullptr || worldMatrix[i - 1][j - 1]->getTopMost() == nullptr)))
 			{
 				return false;

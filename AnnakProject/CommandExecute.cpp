@@ -2,7 +2,7 @@
 #include <vector>
 #include "Coordinates.h"
 #include <memory>
-#include "GameUtils.hpp"
+#include "CategoriesConstants.h"
 #include "Validations.hpp"
 #include "GameVisuals.h" 
 #include "ObjectMoving.h"
@@ -113,33 +113,70 @@ void CommandExecute::work(const std::vector<std::string>& args) {
 	//people
 	//Work 2 2
 	shared_ptr<GameObject> currentSelected = game->currentSelectedGameObject;
-	if (currentSelected == nullptr) {
+	if (currentSelected == nullptr || !currentSelected->isPeople()) {
 		return;
 	}
 
-	ObjectMoving workingPerson(Coordinates(args[0], args[1]), currentSelected, "Work");
+	ObjectMoving workingPerson(Coordinates(args[0], args[1]), currentSelected, ReasonsEnum::Work);
 	game->startMovingObject(workingPerson);
 	//std::cout << "Executing work at coordinates: " << args[0] << ", " << args[1] << std::endl;
 }
 
 void CommandExecute::deposit(const std::vector<std::string>& args) {
-	//from selected (car,people? ) to coord (infrustructure)
+	//from selected (car,people? ) to coord (infrustructure/transportation)
 	//from selected to x,y
 	Coordinates coord(args[1], args[1]);
 	//subtruct from w,x
 
 	shared_ptr<GameObject> selected = game->currentSelectedGameObject;
-	if (selected == nullptr) {
+	if (selected == nullptr || !selected->canMove() || selected->getIsMoving()) {
 		return;
 	}
-	//assume its an infrustructure or maube to the top most -can be transportation? ASK
-	if (game->objectsInXYNullPtr(coord) || !game->getObjectsInXYInCoordinates(coord)->hasInfrastructure()) {
-		//nothing or something without infrustructure
-		return;
-	}
-	shared_ptr<GameObject> to = game->getObjectsInXYInCoordinates(coord)->infrastructure;
 
-	selected->transferResourcesToAnother(*to);
+	if (!game->canDepositThere(coord)) {
+		//is has to be villlage/city/transportation not moving
+		return;
+	}
+
+	shared_ptr<GameObject> into;
+	if (game->getObjectsInXYInCoordinates(coord)->hasInfrustructureNotRoad()) {
+		//into infrustructure
+		into = game->getObjectsInXYInCoordinates(coord)->infrastructure;
+	}
+	else {
+		into = game->getObjectsInXYInCoordinates(coord)->transportation;
+	}
+
+	if (!into->canAddResource(selected->getResources())) {
+		//it has to have anough capacity to deposit all my resources there
+		return;
+	}
+
+	if (selected->isPeople()) {
+		//people deposit into transportation/infrustructure 
+
+		ObjectMoving movingObject(coord, selected, ReasonsEnum::Deposit,into); 
+		game->startMovingObject(movingObject);
+	}
+	else {//its tansportation into infrustructure (not road!)
+		if (!into->isInfrusctuctureNotRoad())
+			return;
+		shared_ptr<GameObject> roadUnderMe = game->getObjectsInXYInCoordinates(selected->getCoordinates())->infrastructure;
+		vector<shared_ptr<GameObject>> roadsAroundDst = game->roadsAroundInfrustructure(into->getCoordinates(),roadUnderMe->getSize().first,into->getSize().first);
+		if (roadUnderMe == nullptr || roadsAroundDst.size()==0) {  
+			cout << endl << "ERROR no road under me, or no roads around destination!" << endl;
+			return;
+		}
+		vector<shared_ptr<GameObject>> pathOfRoads = game->roadsGraph.findWay(roadUnderMe, roadsAroundDst); 
+		if (pathOfRoads.size() == 0) {
+			cout << endl << "ERROR no way of roads" << endl;
+			return;
+		}
+
+		ObjectMoving movingObject(coord, selected, ReasonsEnum::Deposit, pathOfRoads,into); 
+		game->startMovingObject(movingObject);
+	}
+	//selected->transferResourcesToAnother(*into); 
 
 
 
@@ -179,8 +216,8 @@ void CommandExecute::build(const std::vector<std::string>& args) {
 		//ERROR
 		return;
 	}
-	int roadSide = jsonFilePtr->sizes[GameUtils::ROAD].first;
-	if (category != GameUtils::ROAD && !Validations::isThereRoadAround(game->worldMatrix, objSide, roadSide, coord)) {
+	int roadSide = jsonFilePtr->sizes[CategoriesConstants::ROAD].first;
+	if (category != CategoriesConstants::ROAD && !Validations::isThereRoadAround(game->worldMatrix, objSide, roadSide, coord)) {
 		//no road for village/ city
 		return;
 
@@ -202,7 +239,7 @@ void CommandExecute::build(const std::vector<std::string>& args) {
 
 	shared_ptr<GameObject> newInfrustructure = make_shared<GameObject>(category, resources, coord, complete, false);//ASK how much time //complete is false, so when certain time will pass it will be completed
 	game->points += newInfrustructure->getScore();
-	if (category == GameUtils::ROAD) {
+	if (category == CategoriesConstants::ROAD) {
 		game->roadsGraph.addVertice(newInfrustructure);
 	}
 	game->counts[newInfrustructure->getCategory()]++;//although its not completed yet  
@@ -241,9 +278,9 @@ void CommandExecute::buildStart(const std::vector<std::string>& args) {
 	game->addNewGameObjectToWorld(newInfrustructure, coord);
 	GameVisuals::addObject(newInfrustructure);
 
-	if (category == GameUtils::ROAD) {
+	if (category == CategoriesConstants::ROAD) {
 		game->roadsGraph.addVertice(newInfrustructure);
-		vector<shared_ptr<GameObject>> roadsAround = game->roadsAroundRoad(coord, newInfrustructure->getSize().first);
+		vector<shared_ptr<GameObject>> roadsAround = game->roadsAroundInfrustructure(coord, newInfrustructure->getSize().first, newInfrustructure->getSize().first);
 		for (shared_ptr<GameObject> road : roadsAround) {
 			game->roadsGraph.addEdge(newInfrustructure, road);
 		}
@@ -269,8 +306,9 @@ void CommandExecute::manufacture(const std::vector<std::string>& args) {
 		return;
 	}
 	existing->subtructResources(cost);
-	existing->addTransportation(category);
 	shared_ptr<GameObject> newTransportation = make_shared<GameObject>(category, vector<int>{0, 0, 0, 0, 0}, coord, true, false);
+	existing->addResourceObject(newTransportation);
+
 	//game->addNewGameObjectToWorld(newTransportation, coord);
 	game->addNewGameObjectToGameObjects(newTransportation);
 	game->counts[category]++;
@@ -288,11 +326,11 @@ void CommandExecute::manufactureStart(const std::vector<std::string>& args)
 	if (!game->objectsInXYNullPtr(coord) && game->getObjectsInXYInCoordinates(coord)->hasInfrustructureNotRoad()) {
 		//there is an infrustructure not road
 		shared_ptr<GameObject> existing = game->getObjectsInXYInCoordinates(coord)->infrastructure;
-		existing->addTransportation(category);
+		existing->addResourceObject(newTransportation);
 	}
 	else {//not into infrustructure
 		game->addNewGameObjectToWorld(newTransportation, coord);
-		GameVisuals::addObject(newTransportation);
+		//GameVisuals::addObject(newTransportation);
 	}
 
 	game->counts[category]++;
@@ -319,27 +357,27 @@ void CommandExecute::people(const std::vector<std::string>& args) {
 	shared_ptr<GameObject> gameObject = game->getTopMostGameObject(coords);//ASK and ssume resource is to top most
 
 	int amount = stoi(args[0]);
-	int resourceTypeIndex = jsonFilePtr->resourceTypeIndex[GameUtils::PEOPLE];
+	int resourceTypeIndex = jsonFilePtr->resourceTypeIndex[CategoriesConstants::PEOPLE];
 	if (!gameObject->isInfrusctuctureNotRoad() && !gameObject->isTransportation() && amount == 1) {//probably 1? , creating 1 people
 		shared_ptr<GameObject> newPerson = make_shared<GameObject>(CommandExecute::PEOPLE, vector<int>{0, 0, 0, 0, 0}, coords, true, false);
-		game->counts[GameUtils::PEOPLE]++;
+		game->counts[CategoriesConstants::PEOPLE]++;
 		game->addNewGameObjectToGameObjects(newPerson);
 		game->addNewGameObjectToWorld(newPerson, coords);
-		GameVisuals::addObject(newPerson);
+		//GameVisuals::addObject(newPerson);
 	}
 	else if (gameObject->isInfrusctuctureNotRoad() || gameObject->isTransportation()) {//infrustructure->except road!/ transporation, no creating new people???
 		int peopleToAdd = amount;
 		if (gameObject->hasCapacities()) {//car has no capacity
 			int peopleCapacity = jsonFilePtr->access()["Capacities"][gameObject->getCategory()][resourceTypeIndex].get<int>();
 
-			if (!gameObject->canResource(resourceTypeIndex, amount)) {
+			if (!gameObject->canAddResource(resourceTypeIndex, amount)) {
 				//so put as most as i can
 				peopleToAdd = peopleCapacity;
 
 			}
 		}
-		gameObject->resourceExisting(resourceTypeIndex, peopleToAdd);
-		game->counts[GameUtils::PEOPLE] += peopleToAdd;
+		gameObject->setMostResource(resourceTypeIndex, peopleToAdd);
+		game->counts[CategoriesConstants::PEOPLE] += peopleToAdd;
 		//ASK should i create new gameObject?????
 	}
 
@@ -370,7 +408,7 @@ void CommandExecute::resource(const std::vector<std::string>& args) {
 	if (jsonFilePtr->cateoryAmountResourceIndex.count(gameObjectToResource->getCategory()) > 0 || jsonFilePtr->access()["Capacities"].contains(gameObjectToResource->getCategory())) {
 		//has stating or capacities
 		//TODO check if this resource matches his
-		gameObjectToResource->resourceExisting(resourceTypeIndex, amountToAdd);
+		gameObjectToResource->setMostResource(resourceTypeIndex, amountToAdd);
 
 	}
 
@@ -393,7 +431,7 @@ void CommandExecute::resources(const std::vector<std::string>& args) {
 		return;
 	}
 
-	gameObjectToResource->resourceExisting(resources);
+	gameObjectToResource->setMostResource(resources);
 
 
 
@@ -446,7 +484,7 @@ void CommandExecute::moveToDestination(const Coordinates& dest, vector<shared_pt
 			for (list<ObjectMoving>::iterator movingObj = game->movingGameObjects.begin(); movingObj != game->movingGameObjects.end(); movingObj++) {
 				if (!(movingObj->gameObject == movable))
 					continue;
-				movingObj = game->movingGameObjects.erase(movingObj); 
+				movingObj = game->movingGameObjects.erase(movingObj);
 				moveObject(movable, dest);
 				break;
 			}
@@ -465,30 +503,30 @@ void CommandExecute::moveToDestination(const Coordinates& dest, vector<shared_pt
 void CommandExecute::moveObject(shared_ptr<GameObject> objToMove, const Coordinates& coordDst) {
 
 
-	if (objToMove == nullptr || (!objToMove->isPeople() && !objToMove->isTransportation())) {
+	if (objToMove == nullptr || !objToMove->canMove()) {
 		return;
 	}
 
 
 
-	if (objToMove->isPeople()) {
+	if (objToMove->isPeople()) {//move / deposit
 		if (!game->occupiedByMovingObject(coordDst) && !game->placeToMoveToForPerson(coordDst)) {
 			return;
 		}
 		if (!game->objectsInXYNullPtr(coordDst) && game->getObjectsInXYInCoordinates(coordDst)->hasInfrastructure()) {//person moving to infrustructure
 			shared_ptr<GameObject> theInfrustructureInDst = game->getObjectsInXYInCoordinates(coordDst)->infrastructure;
-			int peopleResourceTypeIndex = jsonFilePtr->resourceTypeIndex[GameUtils::PEOPLE];
+			int peopleResourceTypeIndex = jsonFilePtr->resourceTypeIndex[CategoriesConstants::PEOPLE];
 			if (theInfrustructureInDst->hasCapacities() && theInfrustructureInDst->getCapacities()[peopleResourceTypeIndex] == theInfrustructureInDst->getResources()[peopleResourceTypeIndex]) {
 				//cant move to infrustructure full?
 				return;
 			}
 		}
 
-		ObjectMoving movingObject(coordDst, objToMove, "Move");
+		ObjectMoving movingObject(coordDst, objToMove, ReasonsEnum::Move);
 		game->startMovingObject(movingObject);
 	}
 	else {
-		if (!game->occupiedByMovingObject(coordDst) && !game->placeToMoveToForVehicle(coordDst))
+		if (!game->occupiedByMovingObject(coordDst) && !game->placeToMoveToForVehicle(coordDst,objToMove))
 			return;
 		shared_ptr<GameObject> roadUnderMe = game->getObjectsInXYInCoordinates(objToMove->getCoordinates())->infrastructure;
 		shared_ptr<GameObject> roadInDst = game->getObjectsInXYInCoordinates(coordDst)->infrastructure;
@@ -496,7 +534,8 @@ void CommandExecute::moveObject(shared_ptr<GameObject> objToMove, const Coordina
 			cout << endl << "ERROR no road" << endl;
 			return;
 		}
-		vector<shared_ptr<GameObject>> pathOfRoads = game->roadsGraph.findWay(roadUnderMe, roadInDst);
+		vector<shared_ptr<GameObject>> roadInDstList = { roadInDst };
+		vector<shared_ptr<GameObject>> pathOfRoads = game->roadsGraph.findWay(roadUnderMe, roadInDstList);  
 		if (pathOfRoads.size() == 0) {
 			cout << endl << "ERROR no way of roads" << endl;
 			return;
@@ -505,7 +544,7 @@ void CommandExecute::moveObject(shared_ptr<GameObject> objToMove, const Coordina
 			cout << endl << "ERROR same road" << endl;
 			return;
 		}
-		ObjectMoving movingObject(coordDst, objToMove, "Move", pathOfRoads);
+		ObjectMoving movingObject(coordDst, objToMove, ReasonsEnum::Move, pathOfRoads);
 		game->startMovingObject(movingObject);
 	}
 

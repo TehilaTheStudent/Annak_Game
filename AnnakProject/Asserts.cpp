@@ -1,7 +1,7 @@
 #include "Asserts.hpp"
 #include <memory>
 #include <algorithm>
-#include "GameUtils.hpp"
+#include "CategoriesConstants.h"
 using namespace std;
 //all assertions available
 
@@ -73,7 +73,7 @@ void Asserts::selectedPeople(const std::string& args) {
 	if (game->currentSelectedGameObject == nullptr) {
 		return;
 	}
-	int resourceTypeIndex = jsonFilePtr->resourceTypeIndex[GameUtils::PEOPLE];
+	int resourceTypeIndex = jsonFilePtr->resourceTypeIndex[CategoriesConstants::PEOPLE];
 	//if (game->currentSelectedGameObject->isInfrusctuctureNotRoad()) {
 	//	cout << game->currentSelectedObjectsInXY()->infrastructure->getResources()[resourceTypeIndex];
 	//	return;
@@ -93,7 +93,7 @@ void Asserts::selectedCar(const std::string& args) {
 	}
 	if (game->currentSelectedGameObject->isInfrusctuctureNotRoad())
 	{
-		cout << game->currentSelectedGameObject->getTransportationCount(GameUtils::CAR);
+		//cout << game->currentSelectedGameObject->getTransportationCount(CategoriesConstants::CAR);
 
 	}
 	//std::cout << "Executing SelectedCar assert with args: " << args << std::endl;
@@ -106,7 +106,7 @@ void Asserts::selectedTruck(const std::string& args) {
 	}
 	if (game->currentSelectedGameObject->isInfrusctuctureNotRoad())
 	{
-		cout << game->currentSelectedGameObject->getTransportationCount(GameUtils::TRUCK);
+	//	cout << game->currentSelectedGameObject->getTransportationCount(CategoriesConstants::TRUCK);
 
 	}
 	//std::cout << "Executing SelectedTruck assert with args: " << args << std::endl;

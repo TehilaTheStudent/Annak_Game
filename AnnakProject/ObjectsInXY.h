@@ -70,28 +70,30 @@ public:
 	//		&& !(hasInfrastructure() && !isRoad())
 	//		&& hasTile;
 	//}
-	bool placeToMoveToForVehicle() const {
-
-		bool infrastructurePresent = hasInfrastructure();
+	bool placeToMoveToForVehicle(shared_ptr<GameObject> vehicle) const {
+		//cant be person / transportation / full infrustructure/not road
+		bool notFullInfrustructure = hasInfrastructure() && infrastructure->canAddResource(vehicle->getResources());
 		bool roadPresent = isRoad();
-		bool tilePresent = hasTile;
+		//bool tilePresent = hasTile;
+
 
 		return !hasPerson()
 			&& !hasTransportation()
-			&& !(infrastructurePresent && !roadPresent)
-			&& tilePresent;
+			&& (notFullInfrustructure
+				|| roadPresent)
+			;
 	}
 
 	bool placeToMoveToForPerson() const {
 
 		int peopleResourceIndex = jsonFilePtr->resourceTypeIndex["People"];
+		//cant be person / infrusturcture / vehicle
 		return !hasPerson()
 			&& !(hasInfrastructure()
-				&& !isRoad()
-				//&&!infrastructure->canResource(peopleResourceIndex, 1)
+				//&&!infrastructure->canAddResource(peopleResourceIndex, 1)
 				)
 			//&& !(hasTransportation() && !transportation->canResource(peopleResourceIndex, 1))
-			&& hasTile
+			//&& hasTile
 			&& !hasTransportation()
 			// for now cant go to transportation?...
 			;
