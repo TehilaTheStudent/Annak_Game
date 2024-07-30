@@ -27,16 +27,19 @@ The goal of the game is to be the first player to reach a predetermined number o
 
 For detailed rules similar to Catan, you can refer to the official Catan game rules [here](https://www.catan.com/understand-catan/game-rules).
 
-## Contributing
 
-Contributions are welcome! If you have suggestions or improvements, please open an issue or submit a pull request.
 
-## License
 
-This project is open-source and available under the MIT License.
 
 ## Acknowledgments
 
 - Inspired by the gameplay mechanics of Catan.
 - Utilized OpenCV for GUI development.
 - Leveraged design patterns to improve code organization and scalability.
+
+## Conclusion
+
+Thank you for exploring Annak! We hope this game brings you hours of strategic fun and memorable moments with friends and family. Your feedback and contributions are always welcome, as we strive to enhance the gaming experience. Join us on this adventure and may the best strategist win!
+
+Feel free to reach out or contribute to the project on GitHub. Happy gaming!
+
